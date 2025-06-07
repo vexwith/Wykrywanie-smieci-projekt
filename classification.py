@@ -5,7 +5,8 @@ import numpy as np
 from collections import deque
 import random
 
-recycle_categories = {0: "plastic and metal", 1: "paper", 2: "glass", 3: "bio", 4: "mixed"}
+recycle_categories = {0: "plastic and metal", 1: "paper", 2: "glass", 3: "bio", 4: "other"}
+classify_model_path = "recognizer/classify-without-detect.pt"
 
 class WasteClassificationNN(nn.Module):
     def __init__(self, max_word_length, hidden_size=128, num_classes=5):
@@ -24,7 +25,6 @@ class WasteClassificationNN(nn.Module):
 
         # Warstwy ukryte
         self.fc1 = nn.Linear(self.input_size, hidden_size)
-        self.fc2 = nn.Linear(hidden_size, hidden_size)
 
         # Warstwa wyjściowa
         self.fc_out = nn.Linear(hidden_size, num_classes)
@@ -36,7 +36,6 @@ class WasteClassificationNN(nn.Module):
     def forward(self, x):
         # Przepływ danych przez sieć
         x = self.relu(self.fc1(x))
-        x = self.relu(self.fc2(x))
         x = self.fc_out(x)
         return x
 
@@ -121,7 +120,7 @@ class HumanReinforcementLearner:
         return loss.item()
 
 def wczytanie_labeli():
-    model_data = torch.load("runs/classify/train/weights/best.pt", map_location='cpu', weights_only=False)
+    model_data = torch.load(classify_model_path, map_location='cpu', weights_only=False)
     # Sprawdzenie, czy etykiety są w modelu
     if 'model' in model_data and hasattr(model_data['model'], 'names'):
         return model_data['model'].names  # Nowe wersje YOLO
@@ -163,11 +162,12 @@ if __name__ == "__main__":
     max_word_length = len(longest_word)  # Najdłuższe słowo w zbiorze
 
     print(label_list)
-    label_list = label_list + label_list.copy()
+    for _ in range(5):
+        label_list = label_list + label_list.copy()
 
     # Inicjalizacja modelu
     model = WasteClassificationNN(max_word_length=max_word_length, hidden_size=128, num_classes=num_classes)
-    learner = HumanReinforcementLearner(model, max_word_length=max_word_length)
+    learner = HumanReinforcementLearner(model, max_word_length=max_word_length, batch_size=32)
 
     # Przykładowa interakcja z człowiekiem
     def human_feedback_loop():
@@ -202,7 +202,7 @@ if __name__ == "__main__":
             # Pobranie feedbacku od człowieka
             try:
                 auto_category = auto_mapping(user_input)
-                if auto_category == 4:
+                if auto_category == 5:
                     correct_class_str = (input("Podaj poprawną kategorię (0-4): "))
                     if correct_class_str.lower() == 'exit':
                         break
@@ -289,8 +289,8 @@ if __name__ == "__main__":
     # Uruchomienie pętli feedbacku
     # human_feedback_loop()
     # test()
-    test_waste_classification()
+    test_waste_classification("waste_classification_modelv2.pth")
 
     # Zapis modelu po uczeniu
-    # torch.save(model.state_dict(), "waste_classification_model.pth")
-    # print("Model zapisany do waste_classification_model.pth")
+    # torch.save(model.state_dict(), "waste_classification_modelv2.pth")
+    # print("Model zapisany")

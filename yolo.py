@@ -125,8 +125,8 @@ def znajdz_najczestsze_slowo(nazwa_pliku):
 
     return {k: v for k, v in sorted(licznik.items(), key=lambda item: item[1], reverse=True)}
 
-def wczytanie_labeli():
-    model_data = torch.load("runs/classify/train/weights/best.pt", map_location='cpu', weights_only=False)
+def wczytanie_labeli(classify_model_path):
+    model_data = torch.load(classify_model_path, map_location='cpu', weights_only=False)
     # Sprawdzenie, czy etykiety są w modelu
     if 'model' in model_data and hasattr(model_data['model'], 'names'):
         return model_data['model'].names  # Nowe wersje YOLO
@@ -151,14 +151,15 @@ def test_waste_classification(user_input, eval_model, max_word_length):
     return recycle_categories[predicted_class]
 
 def main():
+    classify_model_path = "recognizer/classify-without-detect.pt"
     # createDataFolderStructure()
     # segmentacja()
     # treningModelu()
 
     # model1 = YOLO("./runs/classify/train/weights/best.pt")
-    model1 = YOLO("./runs/classify/train/weights/best.pt")
+    model1 = YOLO(classify_model_path)
 
-    labels = wczytanie_labeli()
+    labels = wczytanie_labeli(classify_model_path)
     # Konwersja na listę (jeśli to słownik np. {0: 'class1', 1: 'class2'})
     if isinstance(labels, dict):
         label_list = list(labels.values())
@@ -167,7 +168,7 @@ def main():
     longest_word = max(label_list, key=len)
     max_word_length = len(longest_word)  # Najdłuższe słowo w zbiorze
 
-    model_path = 'waste_classification_model.pth'
+    model_path = 'waste_classification_modelv2.pth'
     eval_model = WasteClassificationNN(max_word_length=max_word_length)
     eval_model.load_state_dict(torch.load(model_path))
     eval_model.eval()
@@ -180,11 +181,12 @@ def main():
 
         for idx, result in enumerate(results1):
             result.save(f"./outputs/{file_name}")
-            names = [result.names[cls.item()] for cls in result.boxes.cls.int()]  # class name of each box
-            for name in names:
-                zapisz_do_pliku(name, "test.txt")
-                rec_class = test_waste_classification(name, eval_model, max_word_length)
-                recycle_map[name] = rec_class
+            # names = [result.names[cls.item()] for cls in result.boxes.cls.int()]  # class name of each box
+            name = result.names[result.probs.top1]
+            # for name in names:
+            zapisz_do_pliku(name, "test.txt")
+            rec_class = test_waste_classification(name, eval_model, max_word_length)
+            recycle_map[name] = rec_class
     licznik = znajdz_najczestsze_slowo("test.txt")
     print(licznik)
     print(recycle_map)

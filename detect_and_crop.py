@@ -5,9 +5,9 @@ from PIL import Image
 import concurrent
 
 # === Configuration ===
-input_dir = "garbage-dataset"
+input_dir = "fun_images"
 output_dir = "output_objects"
-model_path = "model.pt"
+model_path = "recognizer/detect-model.py"
 skipped = ["paper"]
 
 # Ensure output directory exists
