@@ -2,7 +2,7 @@
 Porównanie kilku sposobów detekcji i klasyfikacji śmieci ze zdjęć na modelach YOLO i Rasnet
 
 ## Startup
-Do przetestowania skryptu potrzebna jest struktura projektu
+struktura projektu
 
 ```bash
 project/
